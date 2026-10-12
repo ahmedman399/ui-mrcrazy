@@ -61,7 +61,7 @@ local CONFIG = {
     ScriptName = "MR CRAZY - <GAME NAME>",
     Version = "1.0.0",
     DiscordUrl = "https://discord.gg/D9gTCEwTpd",
-    WebsiteUrl = "https://mrcrazy.vercel.app",
+    WebsiteUrl = "https://mrcrazy.xyz",
 }
 
 -- ═════════════════════════════ LIBRARY ════════════════════════════
@@ -167,7 +167,7 @@ Lib.KeySystem.Run({
 3. Otherwise it shows the **"Shy Doge" key window**:
    - The key is auto-formatted as `MRC-XXXX-XXXX-XXXX-XXXX`, uppercase. Paste works.
    - The eye button shows / hides the key. The doge covers its eyes while you type a hidden key.
-   - **GET KEY** copies `https://mrcrazy.vercel.app/free`. **DISCORD** and **WEBSITE** copy their links.
+   - **GET KEY** copies `https://mrcrazy.xyz/free`. **DISCORD** and **WEBSITE** copy their links.
    - The yellow button minimizes the window into an island pill at the top. Tap the pill to reopen it.
    - Wrong key: the field shakes, the doge shakes its head, and the server's message is shown.
    - Correct key: the window collapses into the island pill ("Key accepted" + plan), closes after about 3 s, then `OnSuccess(session)` runs.

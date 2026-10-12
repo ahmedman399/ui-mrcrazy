@@ -1001,7 +1001,7 @@ local KeySystem = {}
 
 local DEFAULTS = {
     Api = "https://yarmjpvakthxvvqarxwq.supabase.co/functions/v1/app-api",
-    Site = "https://mrcrazy.vercel.app",
+    Site = "https://mrcrazy.xyz",
     Discord = "https://discord.gg/D9gTCEwTpd",
     Folder = "MRCRAZY",
 }

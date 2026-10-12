@@ -43,7 +43,7 @@ Lib.KeySystem.Run({ Version = "1.0.0", AutoLoad = false, OnSuccess = buildUI })
 ## التجربة
 شغّل `example.lua` في الاكسيكيوتر.
 - `DEMO = true` (أول الملف): من غير سيرفر. المفتاح `MRC-TEST-TEST-TEST-TEST` بيتقبل، و`MRC-0000-0000-0000-0000` بيطلع "مربوط بجهاز تاني".
-- `DEMO = false`: مفاتيح حقيقية من https://mrcrazy.vercel.app/free
+- `DEMO = false`: مفاتيح حقيقية من https://mrcrazy.xyz/free
 
 > أي تعديل في `mrcrazy_ui_lib.lua` هنا بيوصل لكل السكريبتات تلقائياً (GitHub raw بيعمل كاش حوالي 5 دقايق).
 

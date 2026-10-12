@@ -73,8 +73,8 @@ https://yarmjpvakthxvvqarxwq.supabase.co/functions/v1/app-api
 ### 1.4 Error codes — and what to show the player
 | `error` | HTTP | Meaning | Suggested message |
 |---|---|---|---|
-| `invalid_key` | 403 | Key doesn't exist | `Key not found. Copy it again from mrcrazy.vercel.app/profile` |
-| `expired` | 403 | Free key ran out (24 h) | `Your free key expired. Get a new one at mrcrazy.vercel.app/free` |
+| `invalid_key` | 403 | Key doesn't exist | `Key not found. Copy it again from mrcrazy.xyz/profile` |
+| `expired` | 403 | Free key ran out (24 h) | `Your free key expired. Get a new one at mrcrazy.xyz/free` |
 | `revoked` | 403 | Key was turned off (or Premium was removed) | `This key was turned off. Check your profile on the site.` |
 | `banned` | 403 | Account is banned | `Your account is suspended.` |
 | `hwid_mismatch` | 403 | Key is bound to another device | `This key is linked to another device. Premium: use "Reset device" on your profile.` |
@@ -172,7 +172,7 @@ Script starts
 local HttpService = game:GetService("HttpService")
 
 local API = "https://yarmjpvakthxvvqarxwq.supabase.co/functions/v1/app-api"
-local SITE = "https://mrcrazy.vercel.app"
+local SITE = "https://mrcrazy.xyz"
 local FOLDER = "MRCRAZY"
 local KEY_FILE = FOLDER .. "/key.txt"
 local KEY_PATTERN = "^MRC%-%w%w%w%w%-%w%w%w%w%-%w%w%w%w%-%w%w%w%w$"
@@ -345,7 +345,7 @@ end
 ---
 
 ## 6. How to test
-1. Get a Free key from the website: `https://mrcrazy.vercel.app/free` (sign in → the 3 checkpoints). The key shows on `/profile`.
+1. Get a Free key from the website: `https://mrcrazy.xyz/free` (sign in → the 3 checkpoints). The key shows on `/profile`.
 2. Try these scenarios — the results must match exactly:
 
 | Scenario | Expected |

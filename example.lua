@@ -5,7 +5,7 @@
 
    DEMO = true  -> no server needed, use the key  MRC-TEST-TEST-TEST-TEST
                    (MRC-0000-0000-0000-0000 shows the "other device" error)
-   DEMO = false -> real keys from https://mrcrazy.vercel.app/free
+   DEMO = false -> real keys from https://mrcrazy.xyz/free
 ══════════════════════════════════════════════════════════════════════════════
 --]]
 local DEMO = true
@@ -20,7 +20,7 @@ local function openMainWindow(session)
         Title = "MR CRAZY - BREAK AND STEAL AN EGG",
         Subtitle = "Plan: " .. tostring(session and session.plan or "?"),
         DiscordUrl = "https://discord.gg/D9gTCEwTpd",
-        WebsiteUrl = "https://mrcrazy.vercel.app",
+        WebsiteUrl = "https://mrcrazy.xyz",
         ToggleKey = Enum.KeyCode.RightShift,
     })
 
