@@ -30,7 +30,7 @@
    local Win = Lib:CreateWindow({
        Title      = "MR CRAZY - BREAK AND STEAL AN EGG",
        Subtitle   = "Made with love for you",
-       DiscordUrl = "https://discord.gg/D9gTCEwTpd",   -- DISCORD button copies it
+       DiscordUrl = "https://discord.gg/PfnUrnYvg3",   -- DISCORD button copies it
        WebsiteUrl = "https://mrcrazy.xyz",      -- WEB button copies it
        Width = 656, Height = 536,                      -- default size
        ToggleKey = Enum.KeyCode.RightShift,            -- optional show / hide key
@@ -1967,7 +1967,7 @@ local KeySystem = {}
 local DEFAULTS = {
     Api = "https://yarmjpvakthxvvqarxwq.supabase.co/functions/v1/app-api",
     Site = "https://mrcrazy.xyz",
-    Discord = "https://discord.gg/D9gTCEwTpd",
+    Discord = "https://discord.gg/PfnUrnYvg3",
     Folder = "MRCRAZY",
 }
 

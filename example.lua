@@ -19,7 +19,7 @@ local function openMainWindow(session)
     local Win = Lib:CreateWindow({
         Title = "MR CRAZY - BREAK AND STEAL AN EGG",
         Subtitle = "Plan: " .. tostring(session and session.plan or "?"),
-        DiscordUrl = "https://discord.gg/D9gTCEwTpd",
+        DiscordUrl = "https://discord.gg/PfnUrnYvg3",
         WebsiteUrl = "https://mrcrazy.xyz",
         ToggleKey = Enum.KeyCode.RightShift,
     })

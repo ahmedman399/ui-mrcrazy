@@ -1002,7 +1002,7 @@ local KeySystem = {}
 local DEFAULTS = {
     Api = "https://yarmjpvakthxvvqarxwq.supabase.co/functions/v1/app-api",
     Site = "https://mrcrazy.xyz",
-    Discord = "https://discord.gg/D9gTCEwTpd",
+    Discord = "https://discord.gg/PfnUrnYvg3",
     Folder = "MRCRAZY",
 }
 

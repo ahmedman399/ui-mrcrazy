@@ -60,7 +60,7 @@ One `.lua` file that the player pastes into the executor. It contains, in this o
 local CONFIG = {
     ScriptName = "MR CRAZY - <GAME NAME>",
     Version = "1.0.0",
-    DiscordUrl = "https://discord.gg/D9gTCEwTpd",
+    DiscordUrl = "https://discord.gg/PfnUrnYvg3",
     WebsiteUrl = "https://mrcrazy.xyz",
 }
 
