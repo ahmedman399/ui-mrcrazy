@@ -37,7 +37,7 @@ One `.lua` file that the player pastes into the executor. It contains, in this o
 
 1. **No emoji. Anywhere.** Not in tab names, buttons, toasts, prints or comments shown to the player. Use the pixel icon names (section 6). Before you finish, check your file contains no emoji characters.
 2. **Do not copy or edit the library.** Always import it with the one `loadstring(game:HttpGet(...))` line. The script file holds only the game logic and `buildUI`. If something is missing in the library, say so to the user instead of hacking around it.
-3. **Do not create your own ScreenGuis / frames / styles** for the script UI. Only use the library API. The design is fixed: "Classic Sky", Ubuntu font, 656x536. No theme or font switchers.
+3. **Do not create your own ScreenGuis / frames / styles** for the script UI. Only use the library API. The design is fixed: "Classic Sky", Ubuntu font, 656x536. No theme or font switchers. (On phones the library draws the same 656x536 layout smaller by itself, see section 5.1. Do not build a separate mobile UI.)
 4. **No secrets in the script.** No keys, tokens, webhooks, Supabase URLs or keys. Never hard-code a valid key. Never `print` the player's key.
 5. **Never set `Demo = true`** in a script you deliver. It accepts the test key offline and is only for previewing the UI.
 6. **Do not call the key server yourself.** No `request()` to `app-api`. `Lib.KeySystem.Run` handles activation, HWID, saved key, maintenance and errors.
@@ -145,7 +145,8 @@ local function buildUI(session)
         end)
     end)
 
-    Win:Notify("MR CRAZY", "Loaded. Press RightShift to hide / show", 4, "Blue")
+    Win:Notify("MR CRAZY", Win:IsMobile() and "Loaded. Tap the doge button to hide / show"
+        or "Loaded. Press RightShift to hide / show", 4, "Blue")
 end
 
 -- ═════════════════════════════ START ══════════════════════════════
@@ -199,6 +200,8 @@ local Win = Lib:CreateWindow({
     ShortName = "MR CRAZY",               -- text in the idle notch
     AutoActivity = true,                  -- toggles show in the notch while ON
     OnClose = function() end,             -- once, when the window closes
+    -- Scale = 0.8,                       -- optional fixed size 0.3..1.5. Leave it out (auto).
+    -- Mobile = true,                     -- optional: force mobile mode (to preview it on PC). Leave it out.
 })
 ```
 
@@ -212,6 +215,7 @@ Window methods:
 | `Win:Minimize()` / `Win:Restore()` | Notch (Dynamic Island) mode. |
 | `Win:Maximize()` / `Win:RestoreSize()` / `Win:ToggleMaximize()` | |
 | `Win:SetVisible(bool)` / `Win:Destroy()` / `Win:IsAlive()` | |
+| `Win:SetScale(n)` / `Win:GetScale()` / `Win:IsMobile()` | Draw size multiplier 0.3..1.5 (`nil` = back to automatic). `IsMobile()` = the library is in mobile mode. |
 
 Tab widgets (arguments in `[ ]` are optional and can be skipped):
 
@@ -227,6 +231,18 @@ Tab widgets (arguments in `[ ]` are optional and can be skipped):
 | Player selector | `Tab:CreatePlayerSelector(title, [sub], callback(player, selected))` | `{ GetSelected(), Refresh() }` | Grid of the other players, auto-refreshes on join and leave. |
 
 Tones: `"Blue"` (default action), `"Gold"` (highlight / upgrade), `"Green"` (start / confirm), `"Red"` (stop / danger / server hop), `"Ice"`, `"Card"` (neutral / white).
+
+### 5.1 Mobile (automatic, nothing to do in the script)
+
+The library detects phones / tablets (touch screen with no keyboard, or a touch screen with a small viewport) and:
+
+- Draws the **same** window smaller with a `UIScale`: it fits about 60% of the screen width / height, never smaller than 0.45. It refits when the phone rotates. Layout and design do not change. Toasts scale the same way.
+- Shows a round **draggable doge button** on the left edge. Tap = hide / show the window (if the window is in the notch, tap restores it). Drag it anywhere. This replaces `ToggleKey`, which does not exist on phones.
+- Drags (window bar, resize grip, sliders, the button) follow only the finger that started them, so moving with the thumbstick never drags the UI. The grip corner still resizes the window.
+
+Desktop is unchanged (scale 1, no floating button, `ToggleKey` as before).
+
+Script rules for mobile: do not add your own mobile button or scale code. For the "loaded" toast write text that is true on both, e.g. `Win:Notify("MR CRAZY", Win:IsMobile() and "Loaded. Tap the doge button to hide / show" or "Loaded. Press RightShift to hide / show", 4, "Blue")`.
 
 Island notification (no window needed): `Lib:Island({ Title = "...", Text = "...", Icon = "check", Tone = "Green", Duration = 3 })`.
 

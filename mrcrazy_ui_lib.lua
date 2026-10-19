@@ -36,6 +36,8 @@
        ToggleKey = Enum.KeyCode.RightShift,            -- optional show / hide key
        ShortName = "MR CRAZY",                         -- text in the idle notch
        AutoActivity = true,                            -- toggles report to the notch
+       Scale = nil,                                    -- optional fixed size 0.3 .. 1.5 (nil = auto)
+       Mobile = nil,                                   -- nil = auto-detect, true / false to force
        OnClose = function() end,                       -- called once when the window is closed
        -- LogoId / DiscordIcon / WebIcon = "rbxassetid://..." to replace the pixel art
    })
@@ -46,6 +48,13 @@
    Win:SetSize(w, h)  Win:ResetSize()  Win:SetVisible(bool)  Win:Destroy()
    Win:IsAlive()                      -- false after the window is closed (stop your loops)
    Win:AddActivity(id, text)  Win:RemoveActivity(id)  Win:GetActivities()
+   Win:SetScale(n or nil)  Win:GetScale()  Win:IsMobile()
+
+ MOBILE (automatic, no script changes)
+   Phones / tablets get the same window drawn smaller with a UIScale (fits ~60% of the
+   screen, never below 0.45), refit on rotation, plus a round draggable doge button on
+   the left edge: tap = hide / show the window (RightShift does not exist on phones).
+   Drags follow only the finger that started them, so the thumbstick never moves the UI.
 
  TAB
    Tab:CreateSection(title)
@@ -175,6 +184,25 @@ end
 
 local function isPress(i)
     return i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch
+end
+
+-- true when `i` belongs to the press that started with `began`: the same finger on touch
+-- (so the thumbstick finger never moves a drag), any mouse move / left-button release otherwise
+local function samePointer(began, i, ending)
+    if began.UserInputType == Enum.UserInputType.Touch then return i == began end
+    if ending then return i.UserInputType == Enum.UserInputType.MouseButton1 end
+    return i.UserInputType == Enum.UserInputType.MouseMovement
+end
+
+-- phones / tablets: touch screen and no keyboard, or a touch screen with a small viewport
+local function viewportSize()
+    local cam = workspace.CurrentCamera
+    return cam and cam.ViewportSize or Vector2.new(1280, 720)
+end
+local function isMobileDevice()
+    if not UserInputService.TouchEnabled then return false end
+    local vp = viewportSize()
+    return not UserInputService.KeyboardEnabled or vp.X < 900 or vp.Y < 500
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -361,6 +389,17 @@ function Library:CreateWindow(config)
     local TOP_H, SIDE_W = 60, 176
     local MIN_W, MIN_H, MAX_W, MAX_H = 600, 340, 1300, 900
 
+    -- mobile: the whole window is drawn smaller with a UIScale (layout stays 656x536 inside).
+    -- Sizes (WIN_W / WIN_H) are in design units, positions are real screen pixels.
+    local IS_MOBILE
+    if config.Mobile == nil then IS_MOBILE = isMobileDevice() else IS_MOBILE = config.Mobile == true end
+    local function autoScale()
+        local vp = viewportSize()
+        return math.clamp(math.min(vp.X * 0.6 / DEF_W, vp.Y * 0.6 / DEF_H), 0.45, 1)
+    end
+    local manualScale = tonumber(config.Scale) and math.clamp(tonumber(config.Scale), 0.3, 1.5) or nil
+    local SCALE = manualScale or (IS_MOBILE and autoScale() or 1)
+
     -- remove any previous copy
     for _, parent in ipairs({ CoreGui, LocalPlayer:FindFirstChild("PlayerGui"), gethui and gethui() or nil }) do
         local old = parent and parent:FindFirstChild(GUI_NAME)
@@ -395,6 +434,13 @@ function Library:CreateWindow(config)
         VerticalAlignment = Enum.VerticalAlignment.Bottom,
         HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 8),
     }, toastBox)
+    local toastScale = inst("UIScale", { Scale = SCALE }, toastBox)
+    local function applyToastScale() -- keeps the toast column full height and pinned to the right edge
+        toastScale.Scale = SCALE
+        toastBox.Size = UDim2.new(0, 320, 1 / SCALE, -40 / SCALE)
+        toastBox.Position = UDim2.new(1, -(320 * SCALE + 20), 0, 20)
+    end
+    applyToastScale()
 
     function Window:Notify(title, message, duration, tone)
         if minimized then
@@ -428,15 +474,17 @@ function Library:CreateWindow(config)
     -- ── main window ────────────────────────────────────────
     local main = inst("Frame", {
         Size = UDim2.new(0, WIN_W, 0, WIN_H),
-        Position = UDim2.new(0.5, -WIN_W / 2, 0.5, -WIN_H / 2),
+        Position = UDim2.new(0.5, -WIN_W * SCALE / 2, 0.5, -WIN_H * SCALE / 2),
         BackgroundColor3 = WHITE, BorderSizePixel = 0, Active = true, ClipsDescendants = true,
     }, gui)
+    local mainScale = inst("UIScale", { Scale = SCALE }, main)
     local mainCorner = corner(main, 16)
     inst("UIGradient", { Rotation = 90, Color = ColorSequence.new(THEME.WinTop, THEME.WinBottom) }, main)
     stroke(main, THEME.Ink, 4)
 
     -- ── top bar ────────────────────────────────────────────
     local topBar = frame(main, UDim2.new(1, 0, 0, TOP_H), nil, THEME.Navy)
+    if IS_MOBILE then topBar.Active = true end -- dragging the bar must not turn the camera
     frame(topBar, UDim2.new(1, 0, 0, 3), UDim2.new(0, 0, 1, -3), THEME.Ink)
 
     -- ── window controls: close / minimize (notch) / maximize-restore ──
@@ -476,7 +524,7 @@ function Library:CreateWindow(config)
         if maximized then
             maximized = false
             WIN_W, WIN_H = DEF_W, DEF_H
-            tweenMain(UDim2.new(0, DEF_W, 0, DEF_H), UDim2.new(0.5, -DEF_W / 2, 0.5, -DEF_H / 2))
+            tweenMain(UDim2.new(0, DEF_W, 0, DEF_H), UDim2.new(0.5, -DEF_W * SCALE / 2, 0.5, -DEF_H * SCALE / 2))
         else
             Window:SetSize(DEF_W, DEF_H)
         end
@@ -486,10 +534,11 @@ function Library:CreateWindow(config)
         if minimized or maximized then return end
         savedRect = { pos = main.Position, size = main.Size, w = WIN_W, h = WIN_H }
         local vs = gui.AbsoluteSize
-        local w, h = math.floor(vs.X * 0.94), math.floor(vs.Y * 0.92)
+        local w, h = math.floor(vs.X * 0.94 / SCALE), math.floor(vs.Y * 0.92 / SCALE)
         maximized = true
         WIN_W, WIN_H = w, h
-        tweenMain(UDim2.new(0, w, 0, h), UDim2.fromOffset(math.floor((vs.X - w) / 2), math.floor((vs.Y - h) / 2)))
+        tweenMain(UDim2.new(0, w, 0, h),
+            UDim2.fromOffset(math.floor((vs.X - w * SCALE) / 2), math.floor((vs.Y - h * SCALE) / 2)))
     end
     function Window:RestoreSize()
         if not maximized or not savedRect then return end
@@ -601,8 +650,8 @@ function Library:CreateWindow(config)
         refreshNotch()
         local w = notchWidth()
         TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, w, 0, NOTCH_H), Position = notchTopLeft(w) }):Play()
-        TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(0, 23) }):Play()
+            Size = UDim2.new(0, w / SCALE, 0, NOTCH_H / SCALE), Position = notchTopLeft(w) }):Play()
+        TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(0, 23 / SCALE) }):Play()
         task.delay(0.3, function()
             if not alive or not minimized then return end
             main.Visible = false
@@ -616,7 +665,7 @@ function Library:CreateWindow(config)
         popToken += 1
         local w = notch.Size.X.Offset
         notch.Visible = false
-        main.Size = UDim2.new(0, w, 0, NOTCH_H)
+        main.Size = UDim2.new(0, w / SCALE, 0, NOTCH_H / SCALE)
         main.Position = notchTopLeft(w)
         main.Visible = not hidden
         TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -647,6 +696,79 @@ function Library:CreateWindow(config)
             if config.OnClose then task.spawn(config.OnClose) end
         end
     end)
+
+    -- ── scale (mobile auto-scale or a manual size) ──
+    local function keepOnScreen()
+        if minimized or maximized then return end
+        local vs = gui.AbsoluteSize
+        local p = main.AbsolutePosition - gui.AbsolutePosition
+        local x = math.clamp(p.X, 0, math.max(0, vs.X - WIN_W * SCALE))
+        local y = math.clamp(p.Y, 0, math.max(0, vs.Y - WIN_H * SCALE))
+        main.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+    end
+    local function applyScale(s)
+        SCALE = s
+        mainScale.Scale = s
+        applyToastScale()
+        if minimized then main.Size = UDim2.new(0, notch.Size.X.Offset / s, 0, NOTCH_H / s) end
+        keepOnScreen()
+    end
+    -- n = 0.3 .. 1.5 (1 = normal size); nil = back to automatic (mobile auto-scale, desktop 1)
+    function Window:SetScale(n)
+        manualScale = tonumber(n) and math.clamp(tonumber(n), 0.3, 1.5) or nil
+        applyScale(manualScale or (IS_MOBILE and autoScale() or 1))
+    end
+    function Window:GetScale() return SCALE end
+    function Window:IsMobile() return IS_MOBILE end
+
+    if IS_MOBILE then
+        -- phone rotated / viewport changed: refit the window
+        onSignal(gui:GetPropertyChangedSignal("AbsoluteSize"), function()
+            applyScale(manualScale or autoScale())
+        end)
+
+        -- floating button to hide / show the window (phones have no RightShift). Drag it anywhere.
+        local fab = inst("TextButton", {
+            Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 12, 0.5, -24),
+            BackgroundColor3 = THEME.Navy, AutoButtonColor = false, Text = "", BorderSizePixel = 0, ZIndex = 70,
+        }, gui)
+        corner(fab, 24)
+        local fabStroke = stroke(fab, THEME.Sky, 3)
+        local fabLogoHolder = buildLogo(fab, 32)
+        fabLogoHolder.Position = UDim2.new(0.5, -16, 0.5, -16)
+
+        local function toggleFromFab()
+            if hidden then
+                Window:SetVisible(true)
+                if minimized then Window:Restore() end
+            elseif minimized then
+                Window:Restore()
+            else
+                Window:SetVisible(false)
+            end
+            fabStroke.Color = hidden and THEME.PillOff or THEME.Sky
+        end
+
+        local fabDrag
+        fab.InputBegan:Connect(function(i)
+            if isPress(i) then fabDrag = { input = i, start = i.Position, pos = fab.Position, moved = false } end
+        end)
+        onSignal(UserInputService.InputChanged, function(i)
+            if not fabDrag or not samePointer(fabDrag.input, i) then return end
+            local d = i.Position - fabDrag.start
+            if d.Magnitude > 8 then fabDrag.moved = true end
+            if fabDrag.moved then
+                local p = fabDrag.pos
+                fab.Position = UDim2.new(p.X.Scale, p.X.Offset + d.X, p.Y.Scale, p.Y.Offset + d.Y)
+            end
+        end)
+        onSignal(UserInputService.InputEnded, function(i)
+            if not fabDrag or not samePointer(fabDrag.input, i, true) then return end
+            local tapped = not fabDrag.moved
+            fabDrag = nil
+            if tapped then toggleFromFab() end
+        end)
+    end
 
     dot(14, THEME.Red, function() return "x" end, function() Window:Destroy() end)
     dot(38, THEME.Gold, function() return "minus" end, function() Window:Minimize() end)
@@ -752,7 +874,9 @@ function Library:CreateWindow(config)
     local sizeToken = 0
 
     topBar.InputBegan:Connect(function(i)
-        if isPress(i) and not maximized and not minimized then dragState = { start = i.Position, pos = main.Position } end
+        if isPress(i) and not maximized and not minimized then
+            dragState = { input = i, start = i.Position, pos = main.Position }
+        end
     end)
 
     local function handle(size, pos, mx, my, glyph)
@@ -776,7 +900,7 @@ function Library:CreateWindow(config)
             if minimized or maximized or not isPress(i) then return end
             local o = main.AbsolutePosition - gui.AbsolutePosition
             main.Position = UDim2.fromOffset(o.X, o.Y) -- pin top-left, grow to bottom-right
-            resizeState = { start = i.Position, w = WIN_W, h = WIN_H, mx = mx, my = my }
+            resizeState = { input = i, start = i.Position, w = WIN_W, h = WIN_H, mx = mx, my = my }
         end)
     end
     handle(UDim2.new(0, 10, 1, -TOP_H - 28), UDim2.new(1, -10, 0, TOP_H), 1, 0)
@@ -788,16 +912,18 @@ function Library:CreateWindow(config)
             return
         end
         if resizeState then
-            local d = i.Position - resizeState.start
+            if not samePointer(resizeState.input, i) then return end
+            local d = (i.Position - resizeState.start) / SCALE -- screen pixels -> design units
             Window:SetSize(resizeState.w + d.X * resizeState.mx, resizeState.h + d.Y * resizeState.my)
             subLbl.Text = string.format("Size %dx%d", WIN_W, WIN_H)
-        elseif dragState then
+        elseif dragState and samePointer(dragState.input, i) then
             local d, p = i.Position - dragState.start, dragState.pos
             main.Position = UDim2.new(p.X.Scale, p.X.Offset + d.X, p.Y.Scale, p.Y.Offset + d.Y)
         end
     end)
     onSignal(UserInputService.InputEnded, function(i)
-        if not isPress(i) then return end
+        local active = resizeState or dragState
+        if not active or not samePointer(active.input, i, true) then return end
         if resizeState then
             sizeToken += 1
             local token = sizeToken
@@ -1015,20 +1141,20 @@ function Library:CreateWindow(config)
                 valLbl.Text = tostring(value) .. suffix
                 if onChange and not silent then onChange(value) end
             end
-            local dragging = false
+            local dragInput -- the press (mouse button or finger) that grabbed the slider
             local function fromX(x)
                 local pct = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
                 apply(minV + (maxV - minV) * pct)
             end
             track.InputBegan:Connect(function(i)
-                if isPress(i) then dragging = true; fromX(i.Position.X) end
+                if isPress(i) then dragInput = i; fromX(i.Position.X) end
             end)
             onSignal(UserInputService.InputChanged, function(i)
-                if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                    fromX(i.Position.X)
-                end
+                if dragInput and samePointer(dragInput, i) then fromX(i.Position.X) end
             end)
-            onSignal(UserInputService.InputEnded, function(i) if isPress(i) then dragging = false end end)
+            onSignal(UserInputService.InputEnded, function(i)
+                if dragInput and samePointer(dragInput, i, true) then dragInput = nil end
+            end)
             return { Set = function(_, v) apply(v, true) end, Get = function() return value end }
         end
 
