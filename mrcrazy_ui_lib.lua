@@ -677,9 +677,18 @@ function Library:CreateWindow(config)
         TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(0, 16) }):Play()
     end
     -- drag the notch anywhere; a tap (no drag) still opens the window
+    -- (screen-level input + a bounds check, so the logo / labels on top of the notch can't swallow the press)
     local notchDrag
-    notch.InputBegan:Connect(function(i)
-        if isPress(i) then notchDrag = { input = i, start = i.Position, pos = notch.AbsolutePosition - gui.AbsolutePosition, moved = false } end
+    local function overNotch(p)
+        local a, s = notch.AbsolutePosition, notch.AbsoluteSize
+        return p.X >= a.X and p.X <= a.X + s.X and p.Y >= a.Y and p.Y <= a.Y + s.Y
+    end
+    onSignal(UserInputService.InputBegan, function(i)
+        if not notch.Visible or not isPress(i) then return end
+        local p = Vector2.new(i.Position.X, i.Position.Y)
+        if overNotch(p) then
+            notchDrag = { input = i, start = i.Position, pos = notch.AbsolutePosition - gui.AbsolutePosition, moved = false }
+        end
     end)
     onSignal(UserInputService.InputChanged, function(i)
         if not notchDrag or not samePointer(notchDrag.input, i) then return end
@@ -1820,13 +1829,18 @@ local function newKeyContext(config, gui)
             Text = subtitle, Color = THEME.BarSub, Truncate = true })
 
         local dragStart, startPos
-        bar.InputBegan:Connect(function(i)
-            if isPress(i) and not ctx.islandMode then dragStart, startPos = i.Position, panel.Position end
-        end)
+        -- the window drags by its bar; as an island the whole pill drags (a tap still opens it)
+        ctx.startDrag = function(i)
+            if isPress(i) then dragStart, startPos, ctx.dragMoved = i.Position, panel.Position, false end
+        end
+        bar.InputBegan:Connect(ctx.startDrag)
         ctx.track(UserInputService.InputChanged:Connect(function(i)
             if dragStart and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
                 local d = i.Position - dragStart
+                if d.Magnitude > 8 then ctx.dragMoved = true end
+                if ctx.islandMode and not ctx.dragMoved then return end
                 panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+                if ctx.islandMode then ctx.islandSpot = panel.Position end
             end
         end))
         ctx.track(UserInputService.InputEnded:Connect(function(i)
@@ -1952,7 +1966,7 @@ local function buildShyDoge(ctx, config)
         end
         ctx.islandMode = true
         if ctx.box then ctx.box:ReleaseFocus() end
-        tween(panel, 0.45, { Size = UDim2.new(0, PILL_W, 0, PILL_H), Position = UDim2.new(0.5, 0, 0, 10) }, Enum.EasingStyle.Back)
+        tween(panel, 0.45, { Size = UDim2.new(0, PILL_W, 0, PILL_H), Position = ctx.islandSpot or UDim2.new(0.5, 0, 0, 10) }, Enum.EasingStyle.Back)
         if panelCorner then tween(panelCorner, 0.3, { CornerRadius = UDim.new(0, PILL_H / 2) }) end
         if panelStroke then tween(panelStroke, 0.3, { Thickness = 3 }) end
 
@@ -2005,7 +2019,11 @@ local function buildShyDoge(ctx, config)
     minimize.MouseButton1Click:Connect(function()
         toIsland(config.ShortName or "MR CRAZY", "Tap to enter your key", "key", THEME.Gold, true)
     end)
-    reopen.MouseButton1Click:Connect(fromIsland)
+    reopen.InputBegan:Connect(function(i) if ctx.startDrag then ctx.startDrag(i) end end)
+    reopen.MouseButton1Click:Connect(function()
+        if ctx.dragMoved then ctx.dragMoved = false return end
+        fromIsland()
+    end)
 
     local function morphToIsland(message)
         toIsland("Key accepted", message ~= "" and message or "Loading...", "check", THEME.Green, false)
