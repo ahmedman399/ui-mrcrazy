@@ -640,7 +640,11 @@ function Library:CreateWindow(config)
     end
 
     -- ── minimize -> notch  /  restore ──
+    local notchSpot -- where the user dragged the notch (center x, top y); nil = top middle
     local function notchTopLeft(width)
+        if notchSpot then
+            return UDim2.fromOffset(math.floor(notchSpot.X - width / 2), math.floor(notchSpot.Y))
+        end
         return UDim2.fromOffset(math.floor((gui.AbsoluteSize.X - width) / 2), 8)
     end
     function Window:Minimize()
@@ -672,7 +676,29 @@ function Library:CreateWindow(config)
             Size = restoreRect.size, Position = restoreRect.pos }):Play()
         TweenService:Create(mainCorner, TweenInfo.new(0.3), { CornerRadius = UDim.new(0, 16) }):Play()
     end
-    notch.MouseButton1Click:Connect(function() Window:Restore() end)
+    -- drag the notch anywhere; a tap (no drag) still opens the window
+    local notchDrag
+    notch.InputBegan:Connect(function(i)
+        if isPress(i) then notchDrag = { input = i, start = i.Position, pos = notch.AbsolutePosition - gui.AbsolutePosition, moved = false } end
+    end)
+    onSignal(UserInputService.InputChanged, function(i)
+        if not notchDrag or not samePointer(notchDrag.input, i) then return end
+        local d = i.Position - notchDrag.start
+        if d.Magnitude > 8 then notchDrag.moved = true end
+        if notchDrag.moved then
+            local vs, w, h = gui.AbsoluteSize, notch.AbsoluteSize.X, notch.AbsoluteSize.Y
+            local x = math.clamp(notchDrag.pos.X + d.X, 0, math.max(0, vs.X - w))
+            local y = math.clamp(notchDrag.pos.Y + d.Y, 0, math.max(0, vs.Y - h))
+            notchSpot = Vector2.new(x + w / 2, y)
+            notch.Position = UDim2.fromOffset(math.floor(notchSpot.X), math.floor(y))
+        end
+    end)
+    onSignal(UserInputService.InputEnded, function(i)
+        if not notchDrag or not samePointer(notchDrag.input, i, true) then return end
+        local tapped = not notchDrag.moved
+        notchDrag = nil
+        if tapped then Window:Restore() end
+    end)
 
     function Window:SetVisible(v)
         hidden = not v
